@@ -5,6 +5,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,6 +22,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import br.com.fiap.date_control_api.model.Category;
 import br.com.fiap.date_control_api.repository.CategoryRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/categories")
@@ -31,16 +36,20 @@ public class CategoryController {
 	private CategoryRepository repository;
 
 	@GetMapping
+	@Cacheable("categories")
+	@Operation(tags = "category", summary = "Listar categorias", description = "Devolve a lista de categorias")
 	public List<Category> index() {
 		return repository.findAll();
 	}
 
 	@PostMapping
-	// @ResponseStatus(code = HttpStatus.CREATED)
-	public ResponseEntity<Category> create(@RequestBody Category category) {
+	@ResponseStatus(code = HttpStatus.CREATED)
+	@Operation(responses = @ApiResponse(responseCode = "400", description = "Validação falhou"))
+	@CacheEvict(value = "categories", allEntries = true)
+	public ResponseEntity<Category> create(@RequestBody @Valid Category category) {
 		log.info("Cadastrando categoria " + category.getName());
 		repository.save(category);
-		return ResponseEntity.status(201).body(category);
+		return ResponseEntity.status(HttpStatus.CREATED).body(category);
 	}
 
 	@GetMapping("{id}")
@@ -51,13 +60,15 @@ public class CategoryController {
 
 	@DeleteMapping("{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@CacheEvict(value = "categories", allEntries = true)
 	public void destroy(@PathVariable Long id) {
 		log.info("Apagando categoria " + id);
 		repository.delete(getCategory(id));
 	}
 
 	@PutMapping("{id}")
-	public Category update(@PathVariable Long id, @RequestBody Category category) {
+	@CacheEvict(value = "categories", allEntries = true)
+	public Category update(@PathVariable Long id, @RequestBody @Valid Category category) {
 		log.info("Atualizando categoria " + id + " para " + category);
 
 		category.setId(id);
@@ -68,7 +79,7 @@ public class CategoryController {
 		return repository
 				.findById(id)
 				.orElseThrow(
-						() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+						() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria não encontrada"));
 
 	}
 
