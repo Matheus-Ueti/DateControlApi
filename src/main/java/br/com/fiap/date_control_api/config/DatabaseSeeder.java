@@ -17,14 +17,14 @@ public class DatabaseSeeder {
 
     @PostConstruct
     public void init() {
-        categoryRepository.saveAll(
-            List.of(
+            var categories =List.of(
                 Category.builder().name("Trabalho").icon("Briefcase").build(),
                 Category.builder().name("Lazer").icon("Party").build(),
                 Category.builder().name("Educação").icon("Book").build(),
                 Category.builder().name("Família").icon("Home").build()
-            )
-        );
+            );
+            categoryRepository.saveAll(categories);
+        
     }
-    
-} 
+
+}
